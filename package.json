@@ -1,0 +1,18 @@
+{
+  "name": "fractalx-corporate-api",
+  "version": "1.0.0",
+  "description": "FractalX corporate partnership API — Vercel serverless",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "vercel:dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "devDependencies": {
+    "vercel": "^37.0.0"
+  }
+}
