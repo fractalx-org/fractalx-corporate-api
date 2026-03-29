@@ -67,20 +67,18 @@ async function notifyWebhook(data) {
 
     const text = isSlack
         ? [
-            '*New Corporate Partnership Inquiry — FractalX*',
-            `*Company:* ${data.company}`,
+            '*🎉 New Enterprise Waitlist Signup — FractalX*',
             `*Email:* ${data.email}`,
-            `*Size:* ${data.size || '—'}`,
-            `*Interest:* ${data.interest || '—'}`,
-            `*Message:* ${data.message || '—'}`,
+            `*Name:* ${data.name || '—'}`,
+            `*Company:* ${data.company || '—'}`,
+            `*Team size:* ${data.size || '—'}`,
         ].join('\n')
         : [
-            '**New Corporate Partnership Inquiry — FractalX**',
-            `**Company:** ${data.company}`,
+            '**🎉 New Enterprise Waitlist Signup — FractalX**',
             `**Email:** ${data.email}`,
-            `**Size:** ${data.size || '—'}`,
-            `**Interest:** ${data.interest || '—'}`,
-            `**Message:** ${data.message || '—'}`,
+            `**Name:** ${data.name || '—'}`,
+            `**Company:** ${data.company || '—'}`,
+            `**Team size:** ${data.size || '—'}`,
         ].join('\n');
 
     const body = isSlack ? { text } : { content: text };
@@ -101,13 +99,12 @@ async function notifyEmail(data) {
     const from = process.env.RESEND_FROM || 'FractalX <noreply@fractalx.org>';
 
     const html = `
-<h2 style="font-family:sans-serif;margin-bottom:16px">New Partnership Inquiry</h2>
+<h2 style="font-family:sans-serif;margin-bottom:16px">New Enterprise Waitlist Signup</h2>
 <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse">
-  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Company</td><td style="padding:6px 0"><strong>${escapeHtml(data.company)}</strong></td></tr>
-  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Email</td><td style="padding:6px 0">${escapeHtml(data.email)}</td></tr>
-  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Company size</td><td style="padding:6px 0">${escapeHtml(data.size || '—')}</td></tr>
-  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Interest</td><td style="padding:6px 0">${escapeHtml(data.interest || '—')}</td></tr>
-  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top">Message</td><td style="padding:6px 0">${escapeHtml(data.message || '—')}</td></tr>
+  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Email</td><td style="padding:6px 0"><strong>${escapeHtml(data.email)}</strong></td></tr>
+  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Name</td><td style="padding:6px 0">${escapeHtml(data.name || '—')}</td></tr>
+  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Company</td><td style="padding:6px 0">${escapeHtml(data.company || '—')}</td></tr>
+  <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap">Team size</td><td style="padding:6px 0">${escapeHtml(data.size || '—')}</td></tr>
 </table>
 `.trim();
 
@@ -120,7 +117,7 @@ async function notifyEmail(data) {
         body: JSON.stringify({
             from,
             to: [to],
-            subject: `[FractalX] Partnership inquiry from ${data.company}`,
+            subject: `[FractalX] New waitlist signup — ${data.email}`,
             html,
         }),
     });
@@ -169,16 +166,16 @@ export default async function handler(req, res) {
     }
 
     // Parse body
-    const { company, email, size, interest, message, website } = req.body || {};
+    const { name, company, email, size, website } = req.body || {};
 
     // Honeypot — return a silent 200 to not tip off bots
     if (website) {
         return res.status(200).json({ success: true });
     }
 
-    // Validation
-    if (!company?.trim() || !email?.trim()) {
-        return res.status(400).json({ error: 'Company name and email are required.' });
+    // Validation — only email is required
+    if (!email?.trim()) {
+        return res.status(400).json({ error: 'Email is required.' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -186,30 +183,29 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
 
-    if (company.trim().length > 100) {
-        return res.status(400).json({ error: 'Company name must be 100 characters or fewer.' });
-    }
     if (email.trim().length > 200) {
         return res.status(400).json({ error: 'Email must be 200 characters or fewer.' });
     }
-    if (message && message.length > 500) {
-        return res.status(400).json({ error: 'Message must be 500 characters or fewer.' });
+    if (name && name.length > 100) {
+        return res.status(400).json({ error: 'Name must be 100 characters or fewer.' });
+    }
+    if (company && company.length > 100) {
+        return res.status(400).json({ error: 'Company must be 100 characters or fewer.' });
     }
 
     const clean = {
-        company: company.trim(),
         email: email.trim().toLowerCase(),
+        name: (name || '').trim(),
+        company: (company || '').trim(),
         size: (size || '').trim(),
-        interest: (interest || '').trim(),
-        message: (message || '').trim(),
     };
 
     // Log for Vercel function logs (always useful)
-    console.log('[partnership] New inquiry', {
-        company: clean.company,
+    console.log('[waitlist] New signup', {
         email: clean.email,
+        name: clean.name,
+        company: clean.company,
         size: clean.size,
-        interest: clean.interest,
         ip,
     });
 
