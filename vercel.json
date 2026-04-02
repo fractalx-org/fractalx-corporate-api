@@ -2,6 +2,9 @@
   "functions": {
     "api/partnership.js": {
       "maxDuration": 10
+    },
+    "api/certificate.js": {
+      "maxDuration": 15
     }
   },
   "headers": [

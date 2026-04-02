@@ -1,5 +1,5 @@
 /**
- * Local development server — wraps the Vercel handler with a plain Node HTTP server.
+ * Local development server — wraps the Vercel handlers with a plain Node HTTP server.
  * Usage: node server.js  (or npm start)
  * Vercel deployment is unaffected; this file is ignored by Vercel.
  */
@@ -8,7 +8,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-// Load .env before the handler reads process.env
+// Load .env before handlers read process.env
 const __dir = dirname(fileURLToPath(import.meta.url));
 try {
     const lines = readFileSync(join(__dir, '.env'), 'utf8').split('\n');
@@ -23,7 +23,14 @@ try {
     }
 } catch { /* no .env file — rely on shell env vars */ }
 
-const { default: handler } = await import('./api/partnership.js');
+const { default: partnershipHandler } = await import('./api/partnership.js');
+const { default: certificateHandler  } = await import('./api/certificate.js');
+
+// Route table: path prefix → handler
+const routes = {
+    '/api/partnership': partnershipHandler,
+    '/api/certificate':  certificateHandler,
+};
 
 const PORT = process.env.PORT || 3000;
 
@@ -42,7 +49,7 @@ function buildRes(nodeRes) {
     return wrapper;
 }
 
-/** Reads and JSON-parses the request body */
+/** Reads and JSON-parses the request body (for POST/PATCH handlers) */
 function readBody(req) {
     return new Promise((resolve, reject) => {
         let raw = '';
@@ -56,17 +63,29 @@ function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-    if (req.url !== '/api/partnership') {
+    // Match path (strip query string for routing)
+    const path = (req.url || '').split('?')[0];
+    const handler = routes[path];
+
+    if (!handler) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));
         return;
     }
 
-    req.body = await readBody(req);
+    // Only parse body for methods that carry one
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+        req.body = await readBody(req);
+    }
+
     await handler(req, buildRes(res));
 });
 
 server.listen(PORT, () => {
     console.log(`Local server →  http://localhost:${PORT}`);
-    console.log(`Endpoint     →  POST http://localhost:${PORT}/api/partnership`);
+    console.log(`Endpoints:`);
+    console.log(`  POST http://localhost:${PORT}/api/partnership`);
+    console.log(`  GET  http://localhost:${PORT}/api/certificate?event=sliit-dev-conf-26&email=...`);
+    console.log(`  GET  http://localhost:${PORT}/api/certificate?event=sliit-dev-conf-26&mobile=...`);
+    console.log(`  GET  http://localhost:${PORT}/api/certificate?event=sliit-dev-conf-26&verify=...`);
 });
