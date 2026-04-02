@@ -36,7 +36,7 @@ const EVENTS = {
         subtitle: 'SLIIT Dev Conf 2026',
         date:     'Saturday, 4th April 2026',
         time:     '1:30 PM – 3:30 PM',
-        venue:    'Hall F1402, SLIIT',
+        venue:    'Sri Lanka Institute of Information Technology, Malabe, Sri Lanka',
         issuedBy: 'FractalX & SESC',
         type:     'participation',
     },
